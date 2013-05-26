@@ -1,3 +1,4 @@
+import datetime
 from django.contrib import admin
 from django.conf.urls.defaults import patterns, url
 from django.template.defaultfilters import slugify
@@ -10,7 +11,7 @@ class ExportableAdmin(admin.ModelAdmin):
     changelist export. Subclassing this class itself will do nothing unless you
     set export_formats on your ModelAdmin instance. See the other provided
     subclasses which are already setup for CSV, Pipe, and both.
-    
+
     Note: do not override change_list_template or you will not get the
     "Export ..." button on your changelist page.
     """
@@ -19,7 +20,7 @@ class ExportableAdmin(admin.ModelAdmin):
 
     # export 10,000 results by default
     export_queryset_limit = 10000
-    
+
     # an iterable of 2-tuples of (format-name, format-delimiter), such as:
     #  ((u'CSV', u','), (u'Pipe', u'|'),)
     export_formats = tuple()
@@ -42,9 +43,12 @@ class ExportableAdmin(admin.ModelAdmin):
         button for each export format.
         """
         app, mod = self.model._meta.app_label, self.model._meta.module_name
+
+        query = request.META.get("QUERY_STRING", "")
+
         return (
             ('Export %s' % format_name,
-             reverse("admin:%s_%s_export_%s" % (app, mod, format_name.lower())))
+             reverse("admin:%s_%s_export_%s" % (app, mod, format_name.lower())) + "?%s" % query)
              for format_name, delimiter in self.export_formats
         )
 
@@ -60,19 +64,24 @@ class ExportableAdmin(admin.ModelAdmin):
             request.is_export_request = True
             response = super(ExportableAdmin, self).changelist_view(request, extra_context)
             # response is a TemplateResponse so we can change the template
+            filename = "%s-%s-%s.csv" % (
+                    slugify(self.model._meta.verbose_name),
+                    slugify(request.META.get("QUERY_STRING", "")),
+                    slugify(datetime.date.today())
+                    )
             response.template_name = 'django_exportable_admin/change_list_csv.html'
             response['Content-Type'] = 'text/csv'
-            response['Content-Disposition'] = 'attachment; filename=%s.csv' % slugify(self.model._meta.verbose_name)
+            response['Content-Disposition'] = 'attachment; filename=%s' % filename
             return response
         extra_context = extra_context or {}
         extra_context.update({
-            'export_buttons' : self.get_export_buttons(request),
+            'export_buttons': self.get_export_buttons(request),
         })
         return super(ExportableAdmin, self).changelist_view(request, extra_context)
 
     def get_urls(self):
         """
-        Add URL patterns for the export formats. Really all these URLs do are 
+        Add URL patterns for the export formats. Really all these URLs do are
         set extra_context to contain the export_delimiter for the template
         which actually generates the "CSV".
         """
@@ -91,10 +100,11 @@ class ExportableAdmin(admin.ModelAdmin):
         my_urls = patterns('', *new_urls)
         return my_urls + urls
 
+
 class CSVExportableAdmin(ExportableAdmin):
     """
     ExportableAdmin subclass which adds export to CSV functionality.
-    
+
     Note: do not override change_list_template or you will not get the
     "Export ..." button on your changelist page.
     """
@@ -102,10 +112,11 @@ class CSVExportableAdmin(ExportableAdmin):
         (u'CSV', u','),
     )
 
+
 class PipeExportableAdmin(ExportableAdmin):
     """
     ExportableAdmin subclass which adds export to Pipe functionality.
-    
+
     Note: do not override change_list_template or you will not get the
     "Export ..." button on your changelist page.
     """
@@ -113,11 +124,12 @@ class PipeExportableAdmin(ExportableAdmin):
         (u'Pipe', u'|'),
     )
 
+
 class MultiExportableAdmin(ExportableAdmin):
     """
     ExportableAdmin subclass which adds export to CSV and Pipe
     functionality.
-    
+
     Note: do not override change_list_template or you will not get the
     "Export ..." buttons on your changelist page.
     """
