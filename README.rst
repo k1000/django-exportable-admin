@@ -19,6 +19,8 @@ desire. This should be an iterable of 2-tuples, each containing:::
 By default, up to 10,000 rows will be exported, though this can be changed
 easily by setting the ``export_queryset_limit`` attribute on your ModelAdmin.
 
+You may set up custom csv fields at ``csv_list_display`` deiferent from default ``list_display``.
+
 Users of Django > 1.3 should use the 2.x release line or the master branch in
 the git repository (https://github.com/jwineinger/django-exportable-admin).
 
@@ -68,7 +70,8 @@ Complex example:
     from models import MyModel
 
     class MyModelAdmin(ExportableAdmin):
-        list_display = ('field1','field2','calculated_field')
+        list_display = ['field1','field2','calculated_field']
+        csv_list_display = list_display + ["email"]
 
         # only output 100 rows max
         export_queryset_limit = 100
