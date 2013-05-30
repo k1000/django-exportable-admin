@@ -15,8 +15,13 @@ class ExportableAdmin(admin.ModelAdmin):
     Note: do not override change_list_template or you will not get the
     "Export ..." button on your changelist page.
     """
+    #
+    is_csv_export = False
     # use a custom changelist template which adds "Export ..." button(s)
     change_list_template = 'django_exportable_admin/change_list_exportable.html'
+
+    # 
+    csv_list_display = []
 
     # export 10,000 results by default
     export_queryset_limit = 10000
@@ -33,6 +38,17 @@ class ExportableAdmin(admin.ModelAdmin):
         if hasattr(request, 'is_export_request'):
             return self.paginator(queryset, self.export_queryset_limit, 0, True)
         return self.paginator(queryset, per_page, orphans, allow_empty_first_page)
+
+    def get_list_display(self, request):
+        """
+        Return a sequence containing the fields to be displayed on the
+        changelist if there is csv export and csv_list_display if it is defined
+        """
+        import ipdb; ipdb.set_trace()
+        if self.is_csv_export:
+            return getattr(self, "csv_list_display", self.list_display)
+        else:
+            return self.list_display
 
     def get_export_buttons(self, request):
         """
@@ -60,6 +76,7 @@ class ExportableAdmin(admin.ModelAdmin):
         it after we get the TemplateResponse back.
         """
         if extra_context and extra_context['export_delimiter']:
+            self.is_csv_export = True
             # set this attr for get_paginator()
             request.is_export_request = True
             response = super(ExportableAdmin, self).changelist_view(request, extra_context)
