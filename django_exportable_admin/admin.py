@@ -44,7 +44,7 @@ class ExportableAdmin(admin.ModelAdmin):
         Return a sequence containing the fields to be displayed on the
         changelist if there is csv export and csv_list_display if it is defined
         """
-        import ipdb; ipdb.set_trace()
+
         if self.is_csv_export:
             return getattr(self, "csv_list_display", self.list_display)
         else:
